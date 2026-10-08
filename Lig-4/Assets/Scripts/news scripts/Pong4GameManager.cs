@@ -28,42 +28,42 @@ public class Pong4GameManager : MonoBehaviour
     private UDPNetworkManager network;
     private Score4UI scoreUI;
 
-    // ---------------------------------------------------------
-    // POSIÇÕES
-    // ---------------------------------------------------------
+    // =========================================================
+    // POSIÇÕES DOS JOGADORES
+    // =========================================================
 
     private float p1Y;
     private float p2Y;
     private float p3Y;
     private float p4Y;
 
-    // ---------------------------------------------------------
-    // INPUTS
-    // ---------------------------------------------------------
+    // =========================================================
+    // INPUTS RECEBIDOS DO OUTRO PC
+    // PC 2 controla P3 e P4
+    // =========================================================
 
-    private float p2NetworkInput;
+    private float p3NetworkInput;
     private float p4NetworkInput;
 
-    private float lastRemoteInputTime;
-
-    // ---------------------------------------------------------
+    // =========================================================
     // BOLA
-    // ---------------------------------------------------------
+    // =========================================================
 
     private Vector2 ballVelocity;
 
-    // ---------------------------------------------------------
+    // =========================================================
     // PLACAR
-    // ---------------------------------------------------------
+    // =========================================================
 
     private int scoreTeamA;
     private int scoreTeamB;
 
-    // ---------------------------------------------------------
+    // =========================================================
     // REDE
-    // ---------------------------------------------------------
+    // =========================================================
 
     private float networkTimer;
+    private float inputSendTimer;
 
     // =========================================================
     // START
@@ -73,8 +73,7 @@ public class Pong4GameManager : MonoBehaviour
     {
         network = UDPNetworkManager.Instance;
 
-        scoreUI =
-            FindFirstObjectByType<Score4UI>();
+        scoreUI = FindFirstObjectByType<Score4UI>();
 
         if (network == null)
         {
@@ -85,11 +84,13 @@ public class Pong4GameManager : MonoBehaviour
             return;
         }
 
+        // Cliente recebe o estado do servidor
         if (network.IsClient)
         {
             network.OnGameStateReceived += ReceiveGameState;
         }
 
+        // Servidor inicia a partida
         if (network.IsServer)
         {
             InitializeServerGame();
@@ -136,6 +137,7 @@ public class Pong4GameManager : MonoBehaviour
 
     // =========================================================
     // SERVIDOR
+    // PC 1 CONTROLA P1 + P2
     // =========================================================
 
     private void ServerUpdate()
@@ -158,6 +160,9 @@ public class Pong4GameManager : MonoBehaviour
 
     // =========================================================
     // INPUT DO PC 1
+    //
+    // P1 = W / S
+    // P2 = SETA CIMA / BAIXO
     // =========================================================
 
     private void ReadServerInputs()
@@ -182,42 +187,51 @@ public class Pong4GameManager : MonoBehaviour
             p1Input = -1f;
 
         // -----------------------------------------------------
-        // PLAYER 3
-        // I = sobe
-        // K = desce
+        // PLAYER 2
+        // SETA CIMA = sobe
+        // SETA BAIXO = desce
         // -----------------------------------------------------
 
-        float p3Input = 0f;
+        float p2Input = 0f;
 
-        if (keyboard.iKey.isPressed)
-            p3Input = 1f;
+        if (keyboard.upArrowKey.isPressed)
+            p2Input = 1f;
 
-        if (keyboard.kKey.isPressed)
-            p3Input = -1f;
+        if (keyboard.downArrowKey.isPressed)
+            p2Input = -1f;
 
-        // Guarda os valores
-        p1Y += p1Input * paddleSpeed * Time.deltaTime;
+        // -----------------------------------------------------
+        // MOVIMENTA P1 E P2
+        // -----------------------------------------------------
 
-        p3Y += p3Input * paddleSpeed * Time.deltaTime;
+        p1Y +=
+            p1Input *
+            paddleSpeed *
+            Time.deltaTime;
+
+        p2Y +=
+            p2Input *
+            paddleSpeed *
+            Time.deltaTime;
     }
 
     // =========================================================
-    // MOVIMENTAÇÃO DOS JOGADORES
+    // MOVIMENTAÇÃO DOS 4 JOGADORES
     // =========================================================
 
     private void MoveServerPlayers()
     {
         // -----------------------------------------------------
-        // PLAYER 2 - controlado pelo PC 2
+        // P3 - controlado pelo PC 2
         // -----------------------------------------------------
 
-        p2Y +=
-            p2NetworkInput *
+        p3Y +=
+            p3NetworkInput *
             paddleSpeed *
             Time.deltaTime;
 
         // -----------------------------------------------------
-        // PLAYER 4 - controlado pelo PC 2
+        // P4 - controlado pelo PC 2
         // -----------------------------------------------------
 
         p4Y +=
@@ -263,6 +277,10 @@ public class Pong4GameManager : MonoBehaviour
         SetPlayerY(player4, p4Y);
     }
 
+    // =========================================================
+    // ALTERA POSIÇÃO Y
+    // =========================================================
+
     private void SetPlayerY(
         Transform player,
         float y)
@@ -270,15 +288,15 @@ public class Pong4GameManager : MonoBehaviour
         if (player == null)
             return;
 
-        Vector3 pos = player.position;
+        Vector3 position = player.position;
 
-        pos.y = y;
+        position.y = y;
 
-        player.position = pos;
+        player.position = position;
     }
 
     // =========================================================
-    // BOLA
+    // MOVIMENTAÇÃO DA BOLA
     // =========================================================
 
     private void MoveBall()
@@ -286,10 +304,13 @@ public class Pong4GameManager : MonoBehaviour
         Vector3 ballPosition = ball.position;
 
         ballPosition +=
-            (Vector3)(ballVelocity * Time.deltaTime);
+            (Vector3)(
+                ballVelocity *
+                Time.deltaTime
+            );
 
         // -----------------------------------------------------
-        // PAREDES SUPERIOR E INFERIOR
+        // PAREDE SUPERIOR
         // -----------------------------------------------------
 
         if (ballPosition.y >= topLimit)
@@ -299,6 +320,10 @@ public class Pong4GameManager : MonoBehaviour
             ballVelocity.y =
                 -Mathf.Abs(ballVelocity.y);
         }
+
+        // -----------------------------------------------------
+        // PAREDE INFERIOR
+        // -----------------------------------------------------
 
         if (ballPosition.y <= bottomLimit)
         {
@@ -311,7 +336,7 @@ public class Pong4GameManager : MonoBehaviour
         ball.position = ballPosition;
 
         // -----------------------------------------------------
-        // COLISÕES
+        // COLISÕES COM OS JOGADORES
         // -----------------------------------------------------
 
         CheckPaddleCollision(
@@ -335,12 +360,11 @@ public class Pong4GameManager : MonoBehaviour
         );
 
         // -----------------------------------------------------
-        // GOLS
+        // GOL DO LADO ESQUERDO
         // -----------------------------------------------------
 
         if (ball.position.x <= leftGoalX)
         {
-            // Time da direita marca
             scoreTeamB++;
 
             UpdateScoreUI();
@@ -348,9 +372,12 @@ public class Pong4GameManager : MonoBehaviour
             ResetBall(1);
         }
 
+        // -----------------------------------------------------
+        // GOL DO LADO DIREITO
+        // -----------------------------------------------------
+
         if (ball.position.x >= rightGoalX)
         {
-            // Time da esquerda marca
             scoreTeamA++;
 
             UpdateScoreUI();
@@ -360,7 +387,7 @@ public class Pong4GameManager : MonoBehaviour
     }
 
     // =========================================================
-    // COLISÃO COM RAQUETE
+    // COLISÃO DA BOLA COM O JOGADOR
     // =========================================================
 
     private void CheckPaddleCollision(
@@ -370,8 +397,8 @@ public class Pong4GameManager : MonoBehaviour
         if (paddle == null || ball == null)
             return;
 
-        Vector2 ballPos = ball.position;
-        Vector2 paddlePos = paddle.position;
+        Vector2 ballPosition = ball.position;
+        Vector2 paddlePosition = paddle.position;
 
         float halfWidth = 0.2f;
         float halfHeight = 0.8f;
@@ -403,19 +430,26 @@ public class Pong4GameManager : MonoBehaviour
 
         bool insideX =
             Mathf.Abs(
-                ballPos.x - paddlePos.x
-            ) <= halfWidth + ballRadius;
+                ballPosition.x -
+                paddlePosition.x
+            ) <=
+            halfWidth +
+            ballRadius;
 
         bool insideY =
             Mathf.Abs(
-                ballPos.y - paddlePos.y
-            ) <= halfHeight + ballRadius;
+                ballPosition.y -
+                paddlePosition.y
+            ) <=
+            halfHeight +
+            ballRadius;
 
         if (!insideX || !insideY)
             return;
 
         // -----------------------------------------------------
-        // ESQUERDA
+        // JOGADORES DA ESQUERDA
+        // P1 E P2
         // -----------------------------------------------------
 
         if (isLeft &&
@@ -424,22 +458,24 @@ public class Pong4GameManager : MonoBehaviour
             ballVelocity.x =
                 Mathf.Abs(ballVelocity.x);
 
-            ball.position = new Vector3(
-                paddlePos.x +
-                halfWidth +
-                ballRadius +
-                0.02f,
+            ball.position =
+                new Vector3(
+                    paddlePosition.x +
+                    halfWidth +
+                    ballRadius +
+                    0.02f,
 
-                ball.position.y,
+                    ball.position.y,
 
-                ball.position.z
-            );
+                    ball.position.z
+                );
 
             AddVerticalInfluence(paddle);
         }
 
         // -----------------------------------------------------
-        // DIREITA
+        // JOGADORES DA DIREITA
+        // P3 E P4
         // -----------------------------------------------------
 
         if (!isLeft &&
@@ -448,20 +484,25 @@ public class Pong4GameManager : MonoBehaviour
             ballVelocity.x =
                 -Mathf.Abs(ballVelocity.x);
 
-            ball.position = new Vector3(
-                paddlePos.x -
-                halfWidth -
-                ballRadius -
-                0.02f,
+            ball.position =
+                new Vector3(
+                    paddlePosition.x -
+                    halfWidth -
+                    ballRadius -
+                    0.02f,
 
-                ball.position.y,
+                    ball.position.y,
 
-                ball.position.z
-            );
+                    ball.position.z
+                );
 
             AddVerticalInfluence(paddle);
         }
     }
+
+    // =========================================================
+    // INFLUÊNCIA DO MOVIMENTO DO JOGADOR
+    // =========================================================
 
     private void AddVerticalInfluence(
         Transform paddle)
@@ -479,7 +520,7 @@ public class Pong4GameManager : MonoBehaviour
     }
 
     // =========================================================
-    // RESET DA BOLA
+    // REINICIA A BOLA
     // =========================================================
 
     private void ResetBall(float direction)
@@ -487,17 +528,21 @@ public class Pong4GameManager : MonoBehaviour
         ball.position = Vector3.zero;
 
         float randomY =
-            Random.Range(-0.7f, 0.7f);
+            Random.Range(
+                -0.7f,
+                0.7f
+            );
 
         ballVelocity =
             new Vector2(
                 direction,
                 randomY
-            ).normalized * ballSpeed;
+            ).normalized *
+            ballSpeed;
     }
 
     // =========================================================
-    // ENVIA ESTADO PARA O CLIENTE
+    // ENVIA ESTADO PARA O PC 2
     // =========================================================
 
     private void SendGameState()
@@ -521,21 +566,20 @@ public class Pong4GameManager : MonoBehaviour
 
     // =========================================================
     // CLIENTE
+    // PC 2 CONTROLA P3 + P4
     // =========================================================
 
     private void ClientUpdate()
     {
         ReadClientInputs();
-
-        // O cliente envia somente os comandos.
-        // A posição verdadeira vem do servidor.
     }
 
     // =========================================================
     // INPUT DO PC 2
+    //
+    // P3 = W / S
+    // P4 = SETA CIMA / BAIXO
     // =========================================================
-
-    private float inputSendTimer;
 
     private void ReadClientInputs()
     {
@@ -545,30 +589,36 @@ public class Pong4GameManager : MonoBehaviour
             return;
 
         // -----------------------------------------------------
-        // PLAYER 2
-        // SETA CIMA / BAIXO
+        // PLAYER 3
+        // W = sobe
+        // S = desce
         // -----------------------------------------------------
 
-        float p2Input = 0f;
+        float p3Input = 0f;
 
-        if (keyboard.upArrowKey.isPressed)
-            p2Input = 1f;
+        if (keyboard.wKey.isPressed)
+            p3Input = 1f;
 
-        if (keyboard.downArrowKey.isPressed)
-            p2Input = -1f;
+        if (keyboard.sKey.isPressed)
+            p3Input = -1f;
 
         // -----------------------------------------------------
         // PLAYER 4
-        // NUMPAD 8 / 5
+        // SETA CIMA = sobe
+        // SETA BAIXO = desce
         // -----------------------------------------------------
 
         float p4Input = 0f;
 
-        if (keyboard.numpad8Key.isPressed)
+        if (keyboard.upArrowKey.isPressed)
             p4Input = 1f;
 
-        if (keyboard.numpad5Key.isPressed)
+        if (keyboard.downArrowKey.isPressed)
             p4Input = -1f;
+
+        // -----------------------------------------------------
+        // ENVIA OS INPUTS
+        // -----------------------------------------------------
 
         inputSendTimer += Time.deltaTime;
 
@@ -577,8 +627,8 @@ public class Pong4GameManager : MonoBehaviour
             inputSendTimer = 0f;
 
             network.SendToServer(
-                "INPUT|2|" +
-                p2Input.ToString("F0")
+                "INPUT|3|" +
+                p3Input.ToString("F0")
             );
 
             network.SendToServer(
@@ -589,7 +639,7 @@ public class Pong4GameManager : MonoBehaviour
     }
 
     // =========================================================
-    // RECEBE INPUT DO CLIENTE
+    // RECEBE INPUT DO PC 2
     // =========================================================
 
     public void ReceiveNetworkInput(
@@ -618,24 +668,24 @@ public class Pong4GameManager : MonoBehaviour
             return;
         }
 
-        input = Mathf.Clamp(
-            input,
-            -1f,
-            1f
-        );
+        input =
+            Mathf.Clamp(
+                input,
+                -1f,
+                1f
+            );
 
-        if (playerID == 2)
+        // P3
+        if (playerID == 3)
         {
-            p2NetworkInput = input;
+            p3NetworkInput = input;
         }
 
+        // P4
         if (playerID == 4)
         {
             p4NetworkInput = input;
         }
-
-        lastRemoteInputTime =
-            Time.time;
     }
 
     // =========================================================
@@ -655,22 +705,51 @@ public class Pong4GameManager : MonoBehaviour
         if (parts[0] != "STATE")
             return;
 
-        float.TryParse(parts[1], out p1Y);
-        float.TryParse(parts[2], out p2Y);
-        float.TryParse(parts[3], out p3Y);
-        float.TryParse(parts[4], out p4Y);
+        float.TryParse(
+            parts[1],
+            out p1Y
+        );
+
+        float.TryParse(
+            parts[2],
+            out p2Y
+        );
+
+        float.TryParse(
+            parts[3],
+            out p3Y
+        );
+
+        float.TryParse(
+            parts[4],
+            out p4Y
+        );
 
         float ballX;
         float ballY;
 
-        float.TryParse(parts[5], out ballX);
-        float.TryParse(parts[6], out ballY);
+        float.TryParse(
+            parts[5],
+            out ballX
+        );
 
-        int.TryParse(parts[7], out scoreTeamA);
-        int.TryParse(parts[8], out scoreTeamB);
+        float.TryParse(
+            parts[6],
+            out ballY
+        );
+
+        int.TryParse(
+            parts[7],
+            out scoreTeamA
+        );
+
+        int.TryParse(
+            parts[8],
+            out scoreTeamB
+        );
 
         // -----------------------------------------------------
-        // APLICA JOGADORES
+        // ATUALIZA JOGADORES
         // -----------------------------------------------------
 
         SetPlayerY(
@@ -694,20 +773,21 @@ public class Pong4GameManager : MonoBehaviour
         );
 
         // -----------------------------------------------------
-        // APLICA BOLA
+        // ATUALIZA BOLA
         // -----------------------------------------------------
 
-        ball.position = new Vector3(
-            ballX,
-            ballY,
-            ball.position.z
-        );
+        ball.position =
+            new Vector3(
+                ballX,
+                ballY,
+                ball.position.z
+            );
 
         UpdateScoreUI();
     }
 
     // =========================================================
-    // PLACAR
+    // ATUALIZA PLACAR
     // =========================================================
 
     private void UpdateScoreUI()

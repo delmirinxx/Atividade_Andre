@@ -319,9 +319,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 389510082}
-        m_TargetAssemblyTypeName: MenuUI, Assembly-CSharp
-        m_MethodName: CreateServer
+      - m_Target: {fileID: 1202794708}
+        m_TargetAssemblyTypeName: UDPMenuUI, Assembly-CSharp
+        m_MethodName: CriarServidor
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -344,7 +344,7 @@ GameObject:
   - component: {fileID: 132307145}
   - component: {fileID: 132307147}
   m_Layer: 5
-  m_Name: InputField (TMP)
+  m_Name: IPInput
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -524,7 +524,7 @@ GameObject:
   - component: {fileID: 227073401}
   - component: {fileID: 227073400}
   m_Layer: 5
-  m_Name: ClientButton
+  m_Name: ConnectButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -574,9 +574,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 389510082}
-        m_TargetAssemblyTypeName: MenuUI, Assembly-CSharp
-        m_MethodName: ConnectToServer
+      - m_Target: {fileID: 1202794708}
+        m_TargetAssemblyTypeName: UDPMenuUI, Assembly-CSharp
+        m_MethodName: EntrarNoJogo
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -644,55 +644,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &389510081
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 389510083}
-  - component: {fileID: 389510082}
-  m_Layer: 0
-  m_Name: MENUUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &389510082
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 389510081}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18b65eeba625876488bfbc649ff7c3aa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MenuUI
-  networkManager: {fileID: 1070272150}
-  ipInput: {fileID: 132307147}
-  statusText: {fileID: 902940342}
-  serverButton: {fileID: 95097311}
-  clientButton: {fileID: 227073400}
---- !u!4 &389510083
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 389510081}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 517.5, y: 291, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &442105871
 GameObject:
   m_ObjectHideFlags: 0
@@ -1088,38 +1039,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1070272151}
-  - component: {fileID: 1070272150}
+  - component: {fileID: 1070272152}
   m_Layer: 0
-  m_Name: NetworkManager
+  m_Name: UDPNetworkManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1070272150
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1070272149}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69d394edb59389e45b7f2bb756fca7c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkManager
-  mode: 0
-  serverIP: 10.57.1.2
-  port: 7777
-  connected: 0
-  isReadyToPlay: 0
-  player2Input: 0
-  player1Y: 0
-  player2Y: 0
-  ballX: 0
-  ballY: 0
-  score1: 0
-  score2: 0
 --- !u!4 &1070272151
 Transform:
   m_ObjectHideFlags: 0
@@ -1135,6 +1062,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1070272152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070272149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79a39ff504365cd469866d1da002e160, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UDPNetworkManager
+  port: 7777
+  pongSceneName: Pong
 --- !u!1 &1129959972
 GameObject:
   m_ObjectHideFlags: 0
@@ -1215,6 +1156,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1129959972}
   m_CullTransparentMesh: 1
+--- !u!1 &1202794707
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1202794709}
+  - component: {fileID: 1202794708}
+  m_Layer: 0
+  m_Name: UDPMenuUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1202794708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1202794707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b7b5f8f2c0a093448c9585d5ed9673d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UDPMenuUI
+  ipInput: {fileID: 132307147}
+  statusText: {fileID: 902940342}
+--- !u!4 &1202794709
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1202794707}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 550.5, y: 252.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1391201374
 GameObject:
   m_ObjectHideFlags: 0
@@ -1931,4 +1918,4 @@ SceneRoots:
   - {fileID: 1070272151}
   - {fileID: 848175635}
   - {fileID: 11686057}
-  - {fileID: 389510083}
+  - {fileID: 1202794709}

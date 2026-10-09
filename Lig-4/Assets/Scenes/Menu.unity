@@ -319,9 +319,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1202794708}
-        m_TargetAssemblyTypeName: UDPMenuUI, Assembly-CSharp
-        m_MethodName: CriarServidor
+      - m_Target: {fileID: 1070272152}
+        m_TargetAssemblyTypeName: UDPNetworkManager, Assembly-CSharp
+        m_MethodName: StartServer
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -330,7 +330,7 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
+        m_CallState: 1
 --- !u!1 &132307143
 GameObject:
   m_ObjectHideFlags: 0
@@ -511,6 +511,55 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!1 &197504907
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 197504909}
+  - component: {fileID: 197504908}
+  m_Layer: 0
+  m_Name: menu.ui
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &197504908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197504907}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b7b5f8f2c0a093448c9585d5ed9673d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UDPMenuUI
+  network: {fileID: 1070272152}
+  ipInput: {fileID: 132307147}
+  statusText: {fileID: 902940342}
+  serverButton: {fileID: 95097311}
+  clientButton: {fileID: 227073400}
+--- !u!4 &197504909
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197504907}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 614.93164, y: 309.14056, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &227073399
 GameObject:
   m_ObjectHideFlags: 0
@@ -574,9 +623,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1202794708}
+      - m_Target: {fileID: 197504908}
         m_TargetAssemblyTypeName: UDPMenuUI, Assembly-CSharp
-        m_MethodName: EntrarNoJogo
+        m_MethodName: Connect
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1160,55 +1209,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1129959972}
   m_CullTransparentMesh: 1
---- !u!1 &1202794707
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1202794709}
-  - component: {fileID: 1202794708}
-  m_Layer: 0
-  m_Name: UDPMenuUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1202794708
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202794707}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6b7b5f8f2c0a093448c9585d5ed9673d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UDPMenuUI
-  network: {fileID: 0}
-  ipInput: {fileID: 132307147}
-  statusText: {fileID: 902940342}
-  serverButton: {fileID: 95097311}
-  clientButton: {fileID: 227073400}
---- !u!4 &1202794709
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202794707}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 550.5, y: 252.5, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1391201374
 GameObject:
   m_ObjectHideFlags: 0
@@ -1925,4 +1925,4 @@ SceneRoots:
   - {fileID: 1070272151}
   - {fileID: 848175635}
   - {fileID: 11686057}
-  - {fileID: 1202794709}
+  - {fileID: 197504909}

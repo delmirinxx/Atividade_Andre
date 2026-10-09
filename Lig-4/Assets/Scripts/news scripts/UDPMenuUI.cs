@@ -1,120 +1,118 @@
-using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using TMPro;
+using UnityEngine.UI;
 
 public class UDPMenuUI : MonoBehaviour
 {
-    [Header("Campo de IP")]
-    [SerializeField] private TMP_InputField ipInput;
+    public UDPNetworkManager network;
 
-    [Header("Texto de status")]
-    [SerializeField] private TMP_Text statusText;
+    public TMP_InputField ipInput;
 
-    private UDPNetworkManager network;
+    public TMP_Text statusText;
 
-    private void Start()
+    public Button serverButton;
+
+    public Button clientButton;
+
+    void Start()
     {
-        network = UDPNetworkManager.Instance;
+        statusText.text =
+            "Escolha como deseja jogar.";
 
-        if (network == null)
-        {
-            Debug.LogError(
-                "UDPNetworkManager não encontrado!"
-            );
+        serverButton.interactable =
+            true;
 
-            return;
-        }
-
-        if (statusText != null)
-        {
-            statusText.text =
-                "Escolha como deseja jogar.";
-        }
+        clientButton.interactable =
+            true;
     }
 
-    // =========================================================
-    // BOTÃO CRIAR SERVIDOR
-    // =========================================================
-
-    public void CriarServidor()
+    public void CreateServer()
     {
-        if (network == null)
-            return;
-
         network.StartServer();
 
-        if (statusText != null)
-        {
-            statusText.text =
-                "Servidor criado!\n" +
-                "Aguardando outro computador...";
-        }
+        serverButton.interactable =
+            false;
 
-        Debug.Log("Servidor criado.");
+        clientButton.interactable =
+            false;
+
+        statusText.text =
+            "SERVIDOR CRIADO!\n" +
+            "Aguardando jogadores...";
     }
 
-    // =========================================================
-    // BOTÃO ENTRAR NO JOGO
-    // =========================================================
-
-    public void EntrarNoJogo()
+    public void Connect()
     {
-        if (network == null)
-            return;
-
-        string ip = "";
-
-        if (ipInput != null)
-        {
-            ip = ipInput.text.Trim();
-        }
+        string ip =
+            ipInput.text.Trim();
 
         if (string.IsNullOrEmpty(ip))
         {
-            if (statusText != null)
-                statusText.text =
-                    "Digite o IP do servidor.";
+            statusText.text =
+                "Digite o IP do servidor.";
 
             return;
         }
 
-        if (statusText != null)
-        {
-            statusText.text =
-                "Conectando ao servidor...";
-        }
+        network.serverIP =
+            ip;
 
-        network.StartClient(ip);
+        network.StartClient();
+
+        serverButton.interactable =
+            false;
+
+        clientButton.interactable =
+            false;
+
+        statusText.text =
+            "Conectando ao servidor...";
     }
 
-    // =========================================================
-    // STATUS
-    // =========================================================
-
-    private void Update()
+    void Update()
     {
         if (network == null)
             return;
 
-        if (network.IsServer &&
-            !network.IsConnected)
+        if (network.mode ==
+            UDPNetworkManager.NetworkMode.Server)
         {
-            if (statusText != null)
+            statusText.text =
+                "SERVIDOR\n" +
+                "Jogadores: " +
+                network.connectedPlayers +
+                "/4";
+        }
+
+        if (network.mode ==
+            UDPNetworkManager.NetworkMode.Client)
+        {
+            if (network.playerID >= 0)
             {
                 statusText.text =
-                    "Servidor ativo.\n" +
-                    "Aguardando o outro computador...";
+                    "Conectado!\n" +
+                    "Você é o Player " +
+                    (network.playerID + 1);
             }
         }
 
-        if (network.IsServer &&
-            network.IsConnected)
+        if (
+            network.mode ==
+            UDPNetworkManager.NetworkMode.Server &&
+            network.connectedPlayers >= 4)
         {
-            if (statusText != null)
-            {
-                statusText.text =
-                    "Cliente conectado!\n" +
-                    "Iniciando partida...";
-            }
+            SceneManager.LoadScene(
+                "Pong");
+        }
+
+        if (
+            network.mode ==
+            UDPNetworkManager.NetworkMode.Client &&
+            network.playerID >= 0)
+        {
+            SceneManager.LoadScene(
+                "Pong");
         }
     }
 }

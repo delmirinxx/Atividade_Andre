@@ -1,366 +1,445 @@
+using UnityEngine;
 using System;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 public class UDPNetworkManager : MonoBehaviour
 {
-    public static UDPNetworkManager Instance { get; private set; }
+    public enum NetworkMode
+    {
+        None,
+        Server,
+        Client
+    }
 
-    [Header("Rede")]
-    [SerializeField] private int port = 7777;
+    [Header("Configuração")]
+    public NetworkMode mode = NetworkMode.None;
 
-    [Header("Cena do jogo")]
-    [SerializeField] private string pongSceneName = "Pong";
+    public int port = 7777;
 
-    public bool IsServer { get; private set; }
-    public bool IsClient { get; private set; }
-    public bool IsConnected { get; private set; }
+    public string serverIP = "127.0.0.1";
 
-    public string PlayerRole { get; private set; } = "";
+    [Header("Estado")]
+    public bool connected = false;
 
-    public int Port => port;
+    public int playerID = -1;
+
+    public int connectedPlayers = 0;
+
+    // =====================================================
+    // UDP
+    // =====================================================
 
     private UdpClient udp;
+
     private Thread receiveThread;
-    private volatile bool running;
 
-    private IPEndPoint clientEndpoint;
-    private IPEndPoint serverEndpoint;
+    private bool running = false;
 
-    private readonly ConcurrentQueue<string> receivedMessages =
-        new ConcurrentQueue<string>();
+    // =====================================================
+    // SERVIDOR
+    // =====================================================
 
-    private readonly ConcurrentQueue<IPEndPoint> receivedEndpoints =
-        new ConcurrentQueue<IPEndPoint>();
+    private Dictionary<int, IPEndPoint> players =
+        new Dictionary<int, IPEndPoint>();
 
-    public event Action<string> OnGameStateReceived;
+    // =====================================================
+    // MENSAGENS
+    // =====================================================
 
-    private void Awake()
+    private Queue<UDPMessage> receivedMessages =
+        new Queue<UDPMessage>();
+
+    private object messageLock =
+        new object();
+
+    // =====================================================
+    // SINGLETON
+    // =====================================================
+
+    public static UDPNetworkManager Instance;
+
+    void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance != null &&
+            Instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
+
         DontDestroyOnLoad(gameObject);
     }
 
-    private void Update()
+    void Update()
     {
-        ProcessReceivedMessages();
+        ProcessMessages();
     }
 
-    // =========================================================
+    // =====================================================
     // SERVIDOR
-    // =========================================================
+    // =====================================================
 
     public void StartServer()
     {
-        StopNetwork();
-
-        try
-        {
-            IsServer = true;
-            IsClient = false;
-            IsConnected = false;
-
-            PlayerRole = "P1 + P3";
-
-            udp = new UdpClient(port);
-
-            running = true;
-
-            receiveThread = new Thread(ReceiveLoop);
-            receiveThread.IsBackground = true;
-            receiveThread.Start();
-
-            Debug.Log("Servidor UDP iniciado na porta " + port);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Erro ao iniciar servidor: " + e.Message);
-        }
-    }
-
-    // =========================================================
-    // CLIENTE
-    // =========================================================
-
-    public void StartClient(string serverIP)
-    {
-        StopNetwork();
-
-        if (string.IsNullOrWhiteSpace(serverIP))
-        {
-            Debug.LogError("Digite o IP do servidor.");
+        if (running)
             return;
-        }
+
+        mode =
+            NetworkMode.Server;
 
         try
         {
-            IsServer = false;
-            IsClient = true;
-            IsConnected = false;
-
-            PlayerRole = "P2 + P4";
-
-            udp = new UdpClient();
-
-            serverEndpoint = new IPEndPoint(
-                IPAddress.Parse(serverIP),
-                port
-            );
-
-            udp.Connect(serverEndpoint);
+            udp =
+                new UdpClient(port);
 
             running = true;
 
-            receiveThread = new Thread(ReceiveLoop);
+            connected = true;
+
+            receiveThread =
+                new Thread(ReceiveLoop);
+
             receiveThread.IsBackground = true;
+
             receiveThread.Start();
 
-            SendToServer("CONNECT");
-
-            Debug.Log("Tentando conectar ao servidor: " + serverIP);
+            Debug.Log(
+                "Servidor UDP iniciado na porta " +
+                port);
         }
         catch (Exception e)
         {
-            Debug.LogError("Erro ao conectar: " + e.Message);
+            Debug.LogError(
+                "Erro ao iniciar servidor: " +
+                e.Message);
         }
     }
 
-    // =========================================================
-    // RECEBIMENTO UDP
-    // =========================================================
+    // =====================================================
+    // CLIENTE
+    // =====================================================
+
+    public void StartClient()
+    {
+        if (running)
+            return;
+
+        mode =
+            NetworkMode.Client;
+
+        try
+        {
+            udp =
+                new UdpClient();
+
+            running = true;
+
+            connected = true;
+
+            receiveThread =
+                new Thread(ReceiveLoop);
+
+            receiveThread.IsBackground = true;
+
+            receiveThread.Start();
+
+            SendMessageToServer(
+                "CONNECT");
+
+            Debug.Log(
+                "Cliente UDP iniciado.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(
+                "Erro ao iniciar cliente: " +
+                e.Message);
+        }
+    }
+
+    // =====================================================
+    // RECEBER
+    // =====================================================
 
     private void ReceiveLoop()
     {
+        IPEndPoint remote =
+            new IPEndPoint(
+                IPAddress.Any,
+                0);
+
         while (running)
         {
             try
             {
-                IPEndPoint endpoint = new IPEndPoint(
-                    IPAddress.Any,
-                    0
-                );
+                byte[] data =
+                    udp.Receive(
+                        ref remote);
 
-                byte[] data = udp.Receive(ref endpoint);
+                string message =
+                    Encoding.UTF8.GetString(data);
 
-                string message = Encoding.UTF8.GetString(data);
-
-                receivedEndpoints.Enqueue(endpoint);
-                receivedMessages.Enqueue(message);
+                lock (messageLock)
+                {
+                    receivedMessages.Enqueue(
+                        new UDPMessage
+                        {
+                            message = message,
+                            sender = remote
+                        });
+                }
             }
-            catch (SocketException)
+            catch
             {
                 if (!running)
                     break;
             }
-            catch (ObjectDisposedException)
+        }
+    }
+
+    // =====================================================
+    // PROCESSAR
+    // =====================================================
+
+    private void ProcessMessages()
+    {
+        lock (messageLock)
+        {
+            while (
+                receivedMessages.Count > 0)
             {
+                UDPMessage data =
+                    receivedMessages.Dequeue();
+
+                if (mode ==
+                    NetworkMode.Server)
+                {
+                    ProcessServerMessage(
+                        data.message,
+                        data.sender);
+                }
+                else if (
+                    mode ==
+                    NetworkMode.Client)
+                {
+                    ProcessClientMessage(
+                        data.message);
+                }
+            }
+        }
+    }
+
+    // =====================================================
+    // MENSAGENS DO SERVIDOR
+    // =====================================================
+
+    private void ProcessServerMessage(
+        string message,
+        IPEndPoint sender)
+    {
+        if (message == "CONNECT")
+        {
+            RegisterPlayer(sender);
+            return;
+        }
+
+        if (message.StartsWith("INPUT|"))
+        {
+            if (Pong4GameManager.Instance != null)
+            {
+                Pong4GameManager.Instance
+                    .ReceivePlayerInput(
+                        GetPlayerID(sender),
+                        message);
+            }
+        }
+    }
+
+    // =====================================================
+    // REGISTRAR JOGADOR
+    // =====================================================
+
+    private void RegisterPlayer(
+        IPEndPoint endpoint)
+    {
+        if (players.Count >= 4)
+        {
+            SendTo(
+                endpoint,
+                "FULL");
+
+            return;
+        }
+
+        int id = -1;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (!players.ContainsKey(i))
+            {
+                id = i;
                 break;
             }
-            catch (Exception e)
-            {
-                if (running)
-                    Debug.LogError("Erro no recebimento UDP: " + e.Message);
-            }
         }
+
+        if (id == -1)
+            return;
+
+        players.Add(
+            id,
+            endpoint);
+
+        connectedPlayers =
+            players.Count;
+
+        string message =
+            "ID|" + id;
+
+        SendTo(
+            endpoint,
+            message);
+
+        Debug.Log(
+            "Jogador " +
+            id +
+            " conectado.");
     }
 
-    // =========================================================
-    // PROCESSAMENTO DAS MENSAGENS
-    // =========================================================
+    // =====================================================
+    // IDENTIFICAR JOGADOR
+    // =====================================================
 
-    private void ProcessReceivedMessages()
+    private int GetPlayerID(
+        IPEndPoint endpoint)
     {
-        while (receivedMessages.TryDequeue(out string message))
+        foreach (
+            var pair in players)
         {
-            receivedEndpoints.TryDequeue(out IPEndPoint endpoint);
-
-            if (string.IsNullOrEmpty(message))
-                continue;
-
-            // -------------------------------------------------
-            // SERVIDOR
-            // -------------------------------------------------
-
-            if (IsServer)
+            if (pair.Value.Address.Equals(
+                    endpoint.Address) &&
+                pair.Value.Port ==
+                endpoint.Port)
             {
-                if (message == "CONNECT")
-                {
-                    HandleClientConnection(endpoint);
-                    continue;
-                }
-
-                if (message.StartsWith("INPUT|"))
-                {
-                    if (clientEndpoint != null &&
-                        endpoint.Address.Equals(clientEndpoint.Address) &&
-                        endpoint.Port == clientEndpoint.Port)
-                    {
-                        OnClientInputReceived(message);
-                    }
-
-                    continue;
-                }
-            }
-
-            // -------------------------------------------------
-            // CLIENTE
-            // -------------------------------------------------
-
-            if (IsClient)
-            {
-                if (message == "START")
-                {
-                    IsConnected = true;
-
-                    Debug.Log("Servidor iniciou a partida.");
-
-                    LoadPongScene();
-                    continue;
-                }
-
-                if (message.StartsWith("STATE|"))
-                {
-                    OnGameStateReceived?.Invoke(message);
-                    continue;
-                }
+                return pair.Key;
             }
         }
+
+        return -1;
     }
 
-    // =========================================================
-    // CONEXÃO DO CLIENTE
-    // =========================================================
+    // =====================================================
+    // CLIENTE RECEBE
+    // =====================================================
 
-    private void HandleClientConnection(IPEndPoint endpoint)
+    private void ProcessClientMessage(
+        string message)
     {
-        if (clientEndpoint == null)
+        if (message.StartsWith("ID|"))
         {
-            clientEndpoint = new IPEndPoint(
-                endpoint.Address,
-                endpoint.Port
-            );
+            string[] parts =
+                message.Split('|');
 
-            IsConnected = true;
+            playerID =
+                int.Parse(parts[1]);
 
             Debug.Log(
-                "Cliente conectado: " +
-                clientEndpoint.Address +
-                ":" +
-                clientEndpoint.Port
-            );
+                "Sou o jogador " +
+                playerID);
 
-            SendToClient("ROLE|P2|P4");
-
-            // Dá um pequeno tempo para o cliente receber a função
-            // e depois inicia o jogo.
-            SendToClient("START");
-
-            LoadPongScene();
+            return;
         }
-        else
+
+        if (message == "FULL")
         {
-            // Já existe um cliente conectado.
-            SendToEndpoint(endpoint, "FULL");
+            Debug.Log(
+                "Servidor cheio.");
+
+            return;
+        }
+
+        if (message.StartsWith("STATE|"))
+        {
+            if (Pong4GameManager.Instance != null)
+            {
+                Pong4GameManager.Instance
+                    .ReceiveGameState(
+                        message);
+            }
         }
     }
 
-    // =========================================================
-    // ENVIO
-    // =========================================================
+    // =====================================================
+    // ENVIAR PARA SERVIDOR
+    // =====================================================
 
-    public void SendToServer(string message)
+    public void SendMessageToServer(
+        string message)
     {
-        if (!IsClient || udp == null)
+        if (mode != NetworkMode.Client)
             return;
 
         try
         {
-            byte[] data = Encoding.UTF8.GetBytes(message);
+            IPEndPoint endpoint =
+                new IPEndPoint(
+                    IPAddress.Parse(serverIP),
+                    port);
 
-            udp.Send(
-                data,
-                data.Length
-            );
+            SendTo(
+                endpoint,
+                message);
         }
         catch (Exception e)
         {
-            Debug.LogError("Erro ao enviar para servidor: " + e.Message);
+            Debug.LogError(
+                e.Message);
         }
     }
 
-    public void SendToClient(string message)
-    {
-        if (!IsServer || udp == null || clientEndpoint == null)
-            return;
+    // =====================================================
+    // ENVIAR PARA UM CLIENTE
+    // =====================================================
 
-        SendToEndpoint(clientEndpoint, message);
-    }
-
-    private void SendToEndpoint(
+    public void SendTo(
         IPEndPoint endpoint,
         string message)
     {
-        if (udp == null || endpoint == null)
-            return;
+        byte[] data =
+            Encoding.UTF8.GetBytes(
+                message);
 
-        try
-        {
-            byte[] data = Encoding.UTF8.GetBytes(message);
-
-            udp.Send(
-                data,
-                data.Length,
-                endpoint
-            );
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Erro ao enviar UDP: " + e.Message);
-        }
+        udp.Send(
+            data,
+            data.Length,
+            endpoint);
     }
 
-    // =========================================================
-    // INPUT DO CLIENTE
-    // =========================================================
+    // =====================================================
+    // ENVIAR PARA TODOS
+    // =====================================================
 
-    private void OnClientInputReceived(string message)
+    public void SendToAll(
+        string message)
     {
-        // O Pong4GameManager recebe os inputs através deste método.
-        Pong4GameManager game =
-            FindFirstObjectByType<Pong4GameManager>();
-
-        if (game != null)
+        foreach (
+            var player in players)
         {
-            game.ReceiveNetworkInput(message);
+            SendTo(
+                player.Value,
+                message);
         }
     }
 
-    // =========================================================
-    // CARREGAR PONG
-    // =========================================================
-
-    private void LoadPongScene()
-    {
-        if (SceneManager.GetActiveScene().name != pongSceneName)
-        {
-            SceneManager.LoadScene(pongSceneName);
-        }
-    }
-
-    // =========================================================
-    // PARAR REDE
-    // =========================================================
+    // =====================================================
+    // PARAR
+    // =====================================================
 
     public void StopNetwork()
     {
@@ -368,42 +447,26 @@ public class UDPNetworkManager : MonoBehaviour
 
         try
         {
-            if (udp != null)
-            {
-                udp.Close();
-                udp = null;
-            }
+            udp?.Close();
         }
         catch
         {
         }
-
-        try
-        {
-            if (receiveThread != null &&
-                receiveThread.IsAlive)
-            {
-                receiveThread.Join(100);
-            }
-        }
-        catch
-        {
-        }
-
-        receiveThread = null;
-
-        clientEndpoint = null;
-        serverEndpoint = null;
-
-        IsServer = false;
-        IsClient = false;
-        IsConnected = false;
-
-        PlayerRole = "";
     }
 
-    private void OnApplicationQuit()
+    void OnApplicationQuit()
     {
         StopNetwork();
+    }
+
+    // =====================================================
+    // ESTRUTURA
+    // =====================================================
+
+    private class UDPMessage
+    {
+        public string message;
+
+        public IPEndPoint sender;
     }
 }

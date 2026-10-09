@@ -1074,8 +1074,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79a39ff504365cd469866d1da002e160, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPNetworkManager
+  mode: 0
   port: 7777
-  pongSceneName: Pong
+  serverIP: 127.0.0.1
+  connected: 0
+  playerID: -1
+  connectedPlayers: 0
 --- !u!1 &1129959972
 GameObject:
   m_ObjectHideFlags: 0
@@ -1185,8 +1189,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b7b5f8f2c0a093448c9585d5ed9673d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UDPMenuUI
+  network: {fileID: 0}
   ipInput: {fileID: 132307147}
   statusText: {fileID: 902940342}
+  serverButton: {fileID: 95097311}
+  clientButton: {fileID: 227073400}
 --- !u!4 &1202794709
 Transform:
   m_ObjectHideFlags: 0
